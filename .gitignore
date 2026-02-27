@@ -1,0 +1,44 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Node
+**/node_modules/
+**/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.tox/
+**/.nox/
+
+# Local Python environments
+**/venv/
+**/.venv/
+
+# Env files (keep templates)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Large model weights (recommend external storage or Git LFS)
+**/model_param/*.pth
+!**/model_param/README.md
+
+# Temporary files
+*.tmp
+*.temp
