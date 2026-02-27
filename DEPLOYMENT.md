@@ -67,10 +67,10 @@ Copy-Item .env.example .env
 
 ## 4. 启动方式
 
-## A. 面试演示模式（推荐）
+## A. 面试演示模式
 
 ```powershell
-# 终端1（可选，但建议开）：模型
+# 终端1：模型
 cd 模型
 python app.py
 
