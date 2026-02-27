@@ -188,6 +188,7 @@ async function makeAiboResponse(payload) {
 
     if (isOct) {
       let octPath = sourceImage;
+      let probabilities = mockProbabilities(index);
 
       if (modelAlive) {
         try {
@@ -204,7 +205,7 @@ async function makeAiboResponse(payload) {
         index,
         name,
         path: octPath,
-        probabilities: [],
+        probabilities,
       });
       continue;
     }

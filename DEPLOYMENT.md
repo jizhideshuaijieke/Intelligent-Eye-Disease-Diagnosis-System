@@ -67,7 +67,7 @@ Copy-Item .env.example .env
 
 ## 4. 启动方式
 
-## A. 面试演示模式
+## A. 演示模式
 
 ```powershell
 # 终端1：模型
