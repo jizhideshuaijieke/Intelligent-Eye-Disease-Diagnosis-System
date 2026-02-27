@@ -124,18 +124,17 @@
         <!-- <input type="file" webkitdirectory directory multiple @change="startBulkUpload" hidden ref="folderInput"> -->
       </div>
       <div class="probabilities">
-        <div v-if="hasAnalysis" class="probability-buttons">
-          <button v-for="(image, index) in isBulkUpload ? filteredGroupedImages[selectedGroup] : filteredImageResult"
-            :key="index" @click="showProbabilities(index)" :class="{ active: activeIndex === index }">
+        <div v-if="hasAnalysis && currentProbabilityTargets.length" class="probability-buttons">
+          <button v-for="(image, index) in currentProbabilityTargets" :key="index" @click="showProbabilities(index)"
+            :class="{ active: activeIndex === index }">
             图像{{ index + 1 }}的概率
           </button>
         </div>
         <!-- 根据当前激活的索引展示对应的 probabilities -->
-        <div class="progress">
-          <StatusBar
-            :progresses="hasAnalysis ? (isBulkUpload ? filteredGroupedImages[selectedGroup] : filteredImageResult)[activeIndex].probabilities : undefined">
-          </StatusBar>
+        <div v-if="hasAnalysis && currentProgresses.length" class="progress">
+          <StatusBar :progresses="currentProgresses"></StatusBar>
         </div>
+        <div v-else-if="hasAnalysis" class="progresses-empty">当前图像无可显示的分类概率（OCT仅显示分层图）</div>
       </div>
       <!-- <div v-else class="progresses-empty">
         启动AI分析以获取结果
@@ -170,6 +169,20 @@ export default {
       return this.groupedImagesResult.map(subArray => {
         return subArray.filter(image => image.name !== 'left-oct' && image.name !== 'right-oct');
       });
+    },
+    currentProbabilityTargets() {
+      if (!this.hasAnalysis) return [];
+      if (this.isBulkUpload) {
+        return this.filteredGroupedImages[this.selectedGroup] || [];
+      }
+      return this.filteredImageResult || [];
+    },
+    currentProgresses() {
+      const targets = this.currentProbabilityTargets;
+      if (!Array.isArray(targets) || targets.length === 0) return [];
+      const safeIndex = Math.min(this.activeIndex, targets.length - 1);
+      const current = targets[safeIndex];
+      return Array.isArray(current?.probabilities) ? current.probabilities : [];
     }
   },
   data() {
@@ -503,6 +516,7 @@ export default {
             this.groupedImagesResult = this.getGroupedImages(results);
             // this.groupedEnforceImagesResults = this.getGroupedImages(results);
           }
+          this.activeIndex = 0;
           this.isUploadImg = true;
           this.hasAnalysis = true;
         })

@@ -89,6 +89,7 @@ npm run serve
 
 ```powershell
 # 终端1：模型
+conda activate eye-model
 cd 模型
 python app.py
 
