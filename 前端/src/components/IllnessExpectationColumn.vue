@@ -20,7 +20,8 @@ export default {
       type: Array,
       default: () => [
         { name: "正常", probability: 0 },
-        { name: "近视", probability: 0 },
+        { name: "其他疾病", probability: 0 },
+        { name: "病理性近视", probability: 0 },
         { name: "青光眼", probability: 0 },
         { name: "白内障", probability: 0 },
         { name: "糖尿病性视网膜病变", probability: 0 },

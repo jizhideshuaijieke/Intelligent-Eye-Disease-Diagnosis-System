@@ -1,15 +1,18 @@
-const { defineConfig } = require('@vue/cli-service');
+﻿const { defineConfig } = require('@vue/cli-service');
 
 module.exports = defineConfig({
-    transpileDependencies: true,
-    devServer: {
-        port: 7000
+  transpileDependencies: true,
+  devServer: {
+    host: '127.0.0.1',
+    port: 7000,
+    client: {
+      webSocketURL: 'ws://127.0.0.1:7000/ws',
     },
-    chainWebpack: config => {
-        // 链式调用 html 插件来修改标题
-        config.plugin('html').tap(args => {
-            args[0].title = '眼底医疗辅助诊断系统';
-            return args;
-        });
-    }
-});  
+  },
+  chainWebpack: (config) => {
+    config.plugin('html').tap((args) => {
+      args[0].title = '眼底医疗辅助诊断系统';
+      return args;
+    });
+  },
+});

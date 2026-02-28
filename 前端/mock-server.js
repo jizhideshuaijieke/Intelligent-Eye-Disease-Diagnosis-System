@@ -82,8 +82,9 @@ async function isModelAlive() {
 
 function mockProbabilities(index) {
   const base = [
-    { name: "正常", probability: 0.42 },
-    { name: "近视", probability: 0.18 },
+    { name: "正常", probability: 0.36 },
+    { name: "其他疾病", probability: 0.16 },
+    { name: "病理性近视", probability: 0.14 },
     { name: "青光眼", probability: 0.12 },
     { name: "白内障", probability: 0.1 },
     { name: "糖尿病性视网膜病变", probability: 0.08 },
@@ -178,6 +179,7 @@ async function callOctModel(imageBase64) {
 async function makeAiboResponse(payload) {
   const list = Array.isArray(payload) ? payload : [];
   const modelAlive = await isModelAlive();
+  const hasFundusInput = list.some((item) => item?.name !== "left-oct" && item?.name !== "right-oct");
   const data = [];
 
   for (const [idx, item] of list.entries()) {
@@ -188,7 +190,8 @@ async function makeAiboResponse(payload) {
 
     if (isOct) {
       let octPath = sourceImage;
-      let probabilities = mockProbabilities(index);
+      // Only provide OCT pseudo-probabilities when the request contains only OCT images.
+      let probabilities = hasFundusInput ? [] : mockProbabilities(index);
 
       if (modelAlive) {
         try {
