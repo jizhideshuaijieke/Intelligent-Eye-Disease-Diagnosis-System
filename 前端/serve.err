@@ -1,6 +1,0 @@
-Browserslist: browsers data (caniuse-lite) is 13 months old. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
-[BABEL] Note: The code generator has deoptimised the styling of D:\智慧眼疾诊断系统\A_T2406235_荣耀·根源之目_doc\代码\前端\node_modules\element-ui\lib\element-ui.common.js as it exceeds the max of 500KB.
-[BABEL] Note: The code generator has deoptimised the styling of D:\智慧眼疾诊断系统\A_T2406235_荣耀·根源之目_doc\代码\前端\node_modules\element-ui\lib\utils\lodash.js as it exceeds the max of 500KB.
-[BABEL] Note: The code generator has deoptimised the styling of D:\智慧眼疾诊断系统\A_T2406235_荣耀·根源之目_doc\代码\前端\node_modules\@pdf-lib\fontkit\dist\fontkit.es.js as it exceeds the max of 500KB.

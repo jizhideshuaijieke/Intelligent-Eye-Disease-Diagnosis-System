@@ -1,11 +1,14 @@
-<template>
+﻿<template>
   <div id="chart-container">
-    <div id="BarChart"></div>
+    <div ref="barChart" id="BarChart"></div>
     <div id="statistics" v-if="statistics" style="flex: 0 0 30%; margin: 20px 20px 0 0;">
-      <!-- <h3>统计信息</h3> -->
       <div class="button-group">
-        <button v-for="(button, index) in statisticButtons" :key="index"
-          :class="{ active: currentStatistics === button.type }" @click="showStatistics(button.type)">
+        <button
+          v-for="(button, index) in statisticButtons"
+          :key="index"
+          :class="{ active: currentStatistics === button.type }"
+          @click="showStatistics(button.type)"
+        >
           {{ button.label }}
         </button>
       </div>
@@ -16,8 +19,14 @@
               <th v-if="currentStatistics === 'diseaseTotal' || currentStatistics === 'diseasePercentage'">疾病</th>
               <th v-if="currentStatistics === 'ageGroupTotal'">年龄段</th>
               <th
-                v-if="currentStatistics === 'diseaseTotal' || currentStatistics === 'ageGroupTotal' || currentStatistics === 'totalCount'">
-                数量（例）</th>
+                v-if="
+                  currentStatistics === 'diseaseTotal' ||
+                  currentStatistics === 'ageGroupTotal' ||
+                  currentStatistics === 'totalCount'
+                "
+              >
+                数量（例）
+              </th>
               <th v-if="currentStatistics === 'diseasePercentage'">占比（%）</th>
             </tr>
           </thead>
@@ -25,12 +34,14 @@
             <template v-if="currentStatistics === 'diseaseTotal' || currentStatistics === 'diseasePercentage'">
               <tr v-for="(item, index) in seriesNames" :key="index">
                 <td>{{ item }}</td>
-                <td v-if="currentStatistics === 'diseaseTotal'">{{seriesData[index] ? seriesData[index].reduce((sum, val) => sum + val, 0) : 0}}</td>
+                <td v-if="currentStatistics === 'diseaseTotal'">
+                  {{ seriesData[index] ? seriesData[index].reduce((sum, val) => sum + val, 0) : 0 }}
+                </td>
                 <td v-if="currentStatistics === 'diseasePercentage'">{{ getDiseasePercentage(index) }}</td>
               </tr>
               <tr class="total-row">
                 <td>总患病数</td>
-                <td :colspan="currentStatistics === 'diseaseTotal' ? 1 : 1">{{ getTotalCount() }}</td>
+                <td> {{ getTotalCount() }} </td>
               </tr>
             </template>
             <template v-if="currentStatistics === 'ageGroupTotal'">
@@ -51,8 +62,8 @@
 </template>
 
 <script>
-import * as echarts from "echarts/core";
-import { BarChart } from "echarts/charts";
+import * as echarts from 'echarts/core';
+import { BarChart } from 'echarts/charts';
 import {
   TitleComponent,
   TooltipComponent,
@@ -60,9 +71,9 @@ import {
   DatasetComponent,
   TransformComponent,
   LegendComponent,
-} from "echarts/components";
-import { LabelLayout, UniversalTransition } from "echarts/features";
-import { CanvasRenderer } from "echarts/renderers";
+} from 'echarts/components';
+import { LabelLayout, UniversalTransition } from 'echarts/features';
+import { CanvasRenderer } from 'echarts/renderers';
 
 echarts.use([
   TitleComponent,
@@ -81,7 +92,7 @@ export default {
   props: {
     titleText: {
       type: String,
-      default: "柱状图示例",
+      default: '柱状图示例',
     },
     chartData: {
       type: Array,
@@ -93,7 +104,7 @@ export default {
     },
     axisTextColor: {
       type: String,
-      default: "#6E7079"
+      default: '#6E7079',
     },
     seriesNames: {
       type: Array,
@@ -107,32 +118,32 @@ export default {
       type: Array,
       default: () => [
         [
-          { offset: 0, color: '#425f81' },
-          { offset: 1, color: '#425f81' },
+          { offset: 0, color: '#91C7AE' },
+          { offset: 1, color: '#91C7AE' },
         ],
         [
-          { offset: 0, color: "#3fc1c9" },
-          { offset: 1, color: "#3fc1c9" },
+          { offset: 0, color: '#C23531' },
+          { offset: 1, color: '#C23531' },
         ],
         [
-          { offset: 0, color: "#fce38a" },
-          { offset: 1, color: "#fce38a" },
+          { offset: 0, color: '#2F4554' },
+          { offset: 1, color: '#2F4554' },
         ],
         [
-          { offset: 0, color: "#fc5185" },
-          { offset: 1, color: "#fc5185" },
+          { offset: 0, color: '#6AB0B8' },
+          { offset: 1, color: '#6AB0B8' },
         ],
         [
-          { offset: 0, color: "#9896f1" },
-          { offset: 1, color: "#9896f1" },
+          { offset: 0, color: '#E98F6F' },
+          { offset: 1, color: '#E98F6F' },
         ],
         [
-          { offset: 0, color: "#ffaaa5" },
-          { offset: 1, color: "#ffaaa5" },
+          { offset: 0, color: '#B296A7' },
+          { offset: 1, color: '#B296A7' },
         ],
         [
-          { offset: 0, color: "#e84545" },
-          { offset: 1, color: "#e84545" },
+          { offset: 0, color: '#5F7878' },
+          { offset: 1, color: '#5F7878' },
         ],
       ],
     },
@@ -142,8 +153,8 @@ export default {
     },
     statistics: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
   data() {
     return {
@@ -152,53 +163,64 @@ export default {
       statisticButtons: [
         { type: 'diseaseTotal', label: '各疾病总计' },
         { type: 'ageGroupTotal', label: '年龄段总患病数' },
-        { type: 'diseasePercentage', label: '占比' }
+        { type: 'diseasePercentage', label: '占比' },
       ],
     };
   },
   mounted() {
-    this.renderBarChart();
-    // 监听窗口大小变化事件
-    window.addEventListener("resize", this.handleResize);
+    this.updateChart();
+    window.addEventListener('resize', this.handleResize);
+  },
+  activated() {
+    this.$nextTick(() => this.handleResize());
   },
   beforeDestroy() {
-    // 组件销毁前移除事件监听
-    window.removeEventListener("resize", this.handleResize);
+    window.removeEventListener('resize', this.handleResize);
+    if (this.myChart) {
+      this.myChart.dispose();
+      this.myChart = null;
+    }
   },
   methods: {
-    renderBarChart() {
-      this.myChart = echarts.init(document.getElementById("BarChart"));
-      // 动态生成 series 配置
-      const series = this.seriesNames.map((name, index) => {
-        const colorStops =
-          this.gradientColorList[index % this.gradientColorList.length];
+    ensureChart() {
+      const chartDom = this.$refs.barChart;
+      if (!chartDom) return false;
+      if (!this.myChart) {
+        this.myChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
+      }
+      return true;
+    },
+    getSeriesOption() {
+      return this.seriesNames.map((name, index) => {
+        const colorStops = this.gradientColorList[index % this.gradientColorList.length];
         return {
           name,
-          type: "bar",
+          type: 'bar',
           data: this.seriesData[index] || [],
           itemStyle: {
             color: {
-              type: "linear",
+              type: 'linear',
               ...this.gradientDirection,
               colorStops,
             },
           },
         };
       });
-      // 设置图表配置项
-      const option = {
+    },
+    getChartOption() {
+      return {
         title: {
           text: this.titleText,
           textStyle: {
-            color: "rgb(145, 158, 182)",
+            color: 'rgb(145, 158, 182)',
           },
         },
         tooltip: {},
         legend: {
           data: this.seriesNames,
-          bottom: "10px",
+          bottom: '10px',
           textStyle: {
-            color: "#333333",
+            color: '#333333',
           },
         },
         xAxis: {
@@ -213,18 +235,19 @@ export default {
           },
           splitLine: {
             lineStyle: {
-              color: "rgb(41, 52, 98)",
+              color: 'rgb(41, 52, 98)',
             },
           },
         },
-        series,
+        series: this.getSeriesOption(),
       };
-      // 应用配置项到图表
-      this.myChart.setOption(option);
+    },
+    updateChart() {
+      if (!this.ensureChart()) return;
+      this.myChart.setOption(this.getChartOption(), true);
     },
     handleResize() {
       if (this.myChart) {
-        // 窗口大小改变时，重新调整图表大小
         this.myChart.resize();
       }
     },
@@ -257,20 +280,27 @@ export default {
   },
   watch: {
     seriesData: {
-      handler() {
-        this.renderBarChart();
-      },
       deep: true,
-      immediate: false
+      handler() {
+        this.updateChart();
+      },
     },
     seriesNames: {
-      handler() {
-        this.renderBarChart();
-      },
       deep: true,
-      immediate: false
-    }
-  }
+      handler() {
+        this.updateChart();
+      },
+    },
+    xAxisValues: {
+      deep: true,
+      handler() {
+        this.updateChart();
+      },
+    },
+    titleText() {
+      this.updateChart();
+    },
+  },
 };
 </script>
 
@@ -320,7 +350,7 @@ export default {
   width: 100%;
   overflow-y: auto;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   min-height: 120px;
   max-height: 400px;
 }

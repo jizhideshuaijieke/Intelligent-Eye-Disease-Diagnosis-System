@@ -1,42 +1,33 @@
-<template>
-  <div id="pieChart">
-    <div id="PieChart" style="width: calc(100% - 40px); height: calc(100% - 40px)"></div>
+﻿<template>
+  <div class="pie-chart-wrapper">
+    <div ref="pieChart" class="pie-chart"></div>
   </div>
 </template>
 
 <script>
-import * as echarts from "echarts";
+import * as echarts from 'echarts';
+
 export default {
   props: {
     titleText: {
       type: String,
-      default: "饼状图示例",
+      default: '饼状图示例',
     },
-    // 接收父组件传递的数据
     chartData: {
       type: Array,
       default: () => [],
     },
-    // 接收父组件传递的横坐标值
     names: {
       type: Array,
       default: () => [],
     },
     labelColor: {
       type: String,
-      default: "#6E7079"
+      default: '#6E7079',
     },
     colorList: {
       type: Array,
-      default: () => [
-        "#91C7AE",
-        "#C23531",
-        "#2F4554",
-        "#6AB0B8",
-        "#E98F6F",
-        "#B296A7",  // 紫灰玫瑰色
-        "#5F7878"   // 石板青灰色
-      ]
+      default: () => ['#91C7AE', '#C23531', '#2F4554', '#6AB0B8', '#E98F6F', '#B296A7', '#5F7878'],
     },
   },
   data() {
@@ -45,68 +36,79 @@ export default {
     };
   },
   mounted() {
-    this.renderPieChart();
-    window.addEventListener("resize", this.handleResize);
+    this.updateChart();
+    window.addEventListener('resize', this.handleResize);
+  },
+  activated() {
+    this.$nextTick(() => this.handleResize());
   },
   beforeDestroy() {
-    window.removeEventListener("resize", this.handleResize);
+    window.removeEventListener('resize', this.handleResize);
     if (this.myChart) {
       this.myChart.dispose();
+      this.myChart = null;
     }
   },
   methods: {
-    renderPieChart() {
-      const chartDom = document.getElementById("PieChart");
-      this.myChart = echarts.init(chartDom);
-
+    ensureChart() {
+      const chartDom = this.$refs.pieChart;
+      if (!chartDom) return false;
+      if (!this.myChart) {
+        this.myChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
+      }
+      return true;
+    },
+    getChartOption() {
       const formattedData = this.names.map((name, index) => ({
-        value: this.chartData[index],
-        name: name,
+        name,
+        value: Number(this.chartData[index] || 0),
       }));
 
-      const option = {
+      return {
         title: {
           text: this.titleText,
-          left: "center",
+          left: 'center',
           textStyle: {
-            color: "rgb(145, 158, 182)",
+            color: 'rgb(145, 158, 182)',
           },
         },
         tooltip: {
-          trigger: "item",
+          trigger: 'item',
         },
         legend: {
-          orient: 'vertical', // 垂直布局
-          left: 'right', // 位于图表右侧
-          top: 'center', // 垂直居中
+          orient: 'vertical',
+          left: 'right',
+          top: 'center',
           textStyle: {
-            color: 'rgb(145, 158, 182)' // 图例文字颜色
-          }
+            color: 'rgb(145, 158, 182)',
+          },
         },
         series: [
           {
-            name: "数据",
-            type: "pie",
+            name: '数据',
+            type: 'pie',
             center: ['30%', '50%'],
             color: this.colorList,
-            roseType: 'radius',    // 使用radius类型，可减小差异
+            roseType: 'radius',
             data: formattedData,
             label: {
               color: this.labelColor,
-              show: false
+              show: false,
             },
             labelLine: {
-              show: false // 隐藏引导线
+              show: false,
             },
             itemStyle: {
-              borderColor: this.labelColor, // 边框颜色
-              borderWidth: 0 // 将边框宽度设置为0即可去除线框
-            }
+              borderColor: this.labelColor,
+              borderWidth: 0,
+            },
           },
         ],
       };
-
-      this.myChart.setOption(option);
+    },
+    updateChart() {
+      if (!this.ensureChart()) return;
+      this.myChart.setOption(this.getChartOption(), true);
     },
     handleResize() {
       if (this.myChart) {
@@ -116,33 +118,35 @@ export default {
   },
   watch: {
     chartData: {
-      handler() {
-        this.renderPieChart();
-      },
       deep: true,
-      immediate: false
+      handler() {
+        this.updateChart();
+      },
     },
     names: {
-      handler() {
-        this.renderPieChart();
-      },
       deep: true,
-      immediate: false
-    }
+      handler() {
+        this.updateChart();
+      },
+    },
+    titleText() {
+      this.updateChart();
+    },
   },
 };
 </script>
 
 <style scoped>
-#pieChart {
+.pie-chart-wrapper {
   background-color: rgb(250, 250, 250);
   width: 80%;
   height: calc(100% - 35px);
 }
 
-#PieChart {
+.pie-chart {
   background-color: rgb(250, 250, 250);
-  width: 80%;
+  width: calc(100% - 40px);
+  height: calc(100% - 40px);
   margin: 20px;
 }
 </style>

@@ -139,13 +139,13 @@ export default {
   components: { StatusBar, ImageUploader },
   computed: {
     filteredEyeGroundImageResult() {
-      return this.imageResult.filter(image => image.name === 'left' || image.name === 'right')
+      return this.sortByIndex(this.imageResult.filter(image => image.name === 'left' || image.name === 'right'))
     },
     filteredOCTImageResult() {
-      return this.imageResult.filter(image => image.name === 'left-oct' || image.name === 'right-oct')
+      return this.sortByIndex(this.imageResult.filter(image => image.name === 'left-oct' || image.name === 'right-oct'))
     },
     filteredImageResult() {
-      return this.imageResult.filter(image => image.name !== 'left-oct' && image.name !== 'right-oct')
+      return this.sortByIndex(this.imageResult.filter(image => image.name !== 'left-oct' && image.name !== 'right-oct'))
     },
     filteredGroupedImages() {
       return this.groupedImagesResult.map(group => group.filter(image => image.name !== 'left-oct' && image.name !== 'right-oct'))
@@ -207,6 +207,10 @@ export default {
     }
   },
   methods: {
+    sortByIndex(items) {
+      const list = Array.isArray(items) ? items : []
+      return [...list].sort((a, b) => Number(a?.index || 0) - Number(b?.index || 0))
+    },
     prevPage() {
       if (this.selectedGroup > 0) this.selectedGroup--
       this.activeIndex = 0
@@ -390,10 +394,12 @@ export default {
           break
       }
 
+      this.imageFundus = this.sortByIndex(this.imageFundus)
+      this.imageOCT = this.sortByIndex(this.imageOCT)
       this.handleImageUpload()
     },
     handleImageUpload() {
-      this.images = [...this.imageFundus, ...this.imageOCT]
+      this.images = this.sortByIndex([...this.imageFundus, ...this.imageOCT])
       this.isUploadImg = true
     },
     getBulkPreviewImage(index, originalPath) {
@@ -415,8 +421,9 @@ export default {
         const results = Array.isArray(res?.data?.data) ? res.data.data : []
 
         if (!this.isBulkUpload) {
-          this.imageResult = results
-          for (const image of results) {
+          const sortedResults = this.sortByIndex(results)
+          this.imageResult = sortedResults
+          for (const image of sortedResults) {
             this.enforceImageResults[image.index] = image.enhanced_image
           }
         } else {

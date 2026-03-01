@@ -2,9 +2,7 @@
   <div id="doctorInfor">
     <div class="body">
       <el-form :model="form" class="inforForm">
-        <!-- 左半部分表单 -->
         <div class="leftPart">
-          <!-- 基本信息 -->
           <div class="upPart">
             <div style="display: flex; justify-content: left; align-items: center;">
               <h4>基本信息</h4>
@@ -21,7 +19,7 @@
               </el-form-item>
 
               <el-form-item label="性别" prop="gender">
-                <img :src="require('@/assets/buttonIcons/xingbie.svg')" />
+                <img :src="require('@/assets/buttonIcons/xingbie.svg')" alt="gender" />
                 <el-input v-model="form.gender" :disabled="!isEditing" />
               </el-form-item>
 
@@ -46,6 +44,7 @@
               </el-form-item>
             </div>
           </div>
+
           <div class="downPart">
             <div style="display: flex; justify-content: left; align-items: center;">
               <h4>安全设置</h4>
@@ -57,8 +56,7 @@
                   <el-input v-model="form.oldPasswordInput" :disabled="!isModifyPassword" type="password"
                     :placeholder="isModifyPassword ? '' : '********'" />
                 </el-form-item>
-                <el-button @click="setModifyStatus" :disabled="!isEditing" v-if="!isModifyPassword"
-                  class="passwordButton">修改</el-button>
+                <el-button @click="setModifyStatus" v-if="!isModifyPassword" class="passwordButton">设置新密码</el-button>
                 <el-button @click="submitPassWord" v-if="isModifyPassword" class="passwordButton">提交</el-button>
               </div>
               <el-form-item label="新密码" prop="newPassword" v-if="isModifyPassword">
@@ -67,7 +65,7 @@
             </div>
           </div>
         </div>
-        <!-- 右半部分图片-->
+
         <div class="rightPart">
           <div class="imageSizeControler">
             <el-form-item label="个人照片" class="imageContainer">
@@ -75,13 +73,17 @@
               <ImageUploader :isUpload="true" @file-uploaded="imageUpload" :disabled="!isEditing" class="image" />
             </el-form-item>
           </div>
+          <div class="functionalButtons">
+            <div class="button">
+              <el-button v-if="!isEditing" type="primary" @click="setEditingStatus">修改资料</el-button>
+              <el-button v-else type="success" @click="setEditingStatus">提交</el-button>
+            </div>
+            <div class="button">
+              <el-button type="primary" @click="logOut">退出登录</el-button>
+            </div>
+          </div>
         </div>
       </el-form>
-
-      <div class="button-group">
-        <el-button v-if="!isEditing" type="primary" @click="setEditingStatus">修改</el-button>
-        <el-button v-else type="success" @click="setEditingStatus">提交</el-button>
-      </div>
     </div>
   </div>
 </template>
@@ -91,7 +93,7 @@ import ImageUploader from '@/components/ImageUploader.vue';
 
 export default {
   components: {
-    ImageUploader
+    ImageUploader,
   },
   data() {
     return {
@@ -109,9 +111,9 @@ export default {
         image: '',
         passWord: '1433223',
         oldPasswordInput: '',
-        newPassword: ''
-      }
-    }
+        newPassword: '',
+      },
+    };
   },
   methods: {
     setEditingStatus() {
@@ -123,18 +125,20 @@ export default {
     submitPassWord() {
       if (this.form.oldPasswordInput === this.form.passWord) {
         if (this.form.newPassword === '') {
-          this.$message.error("新密码不能为空！");
+          this.$message.error('新密码不能为空！');
         } else {
           this.form.passWord = this.form.newPassword;
-          this.form.newPassword = this.form.oldPasswordInput = '';
-          this.$message.success("修改成功！");
+          this.form.newPassword = '';
+          this.form.oldPasswordInput = '';
+          this.$message.success('修改成功！');
           this.isModifyPassword = false;
         }
       } else {
-        if (this.form.oldPasswordInput === '')
-          this.$message.error("请先输入原密码！");
-        else
-          this.$message.error("原密码错误，请重试！");
+        if (this.form.oldPasswordInput === '') {
+          this.$message.error('请先输入原密码！');
+        } else {
+          this.$message.error('原密码错误，请重试！');
+        }
 
         this.form.newPassword = '';
         this.form.oldPasswordInput = '';
@@ -143,9 +147,35 @@ export default {
     imageUpload({ file, base64 }) {
       this.form.image = base64;
       this.file = file;
-    }
-  }
-}
+    },
+    async logOut() {
+      try {
+        await this.$confirm('确定退出当前账号吗？', '退出登录', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        });
+        this.form = {
+          name: '',
+          age: '',
+          gender: '',
+          doctorID: '',
+          department: '',
+          email: '',
+          phone: '',
+          image: '',
+          passWord: '1433223',
+          oldPasswordInput: '',
+          newPassword: '',
+        };
+        this.$message.success('退出登录成功！');
+        this.$router.push('/login');
+      } catch (error) {
+        // 用户取消
+      }
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -182,7 +212,7 @@ export default {
 
 .upPart {
   background-color: #f8f9fa;
-  border-left: 4px solid#3a86ff;
+  border-left: 4px solid #3a86ff;
   border-radius: 10px;
   border: 1px solid #65676c;
   padding: 0 20px 20px 20px;
@@ -190,7 +220,7 @@ export default {
 
 .downPart {
   background-color: #f8f9fa;
-  border-left: 4px solid#219ebc;
+  border-left: 4px solid #219ebc;
   border-radius: 10px;
   border: 1px solid #65676c;
   padding: 0 20px 20px 20px;
@@ -200,6 +230,7 @@ export default {
   flex: 3;
   display: flex;
   height: 50%;
+  flex-direction: column;
   justify-content: right;
   background-color: #ffffff;
   border-radius: 10px;
@@ -215,7 +246,9 @@ export default {
 
 .imageContainer {
   width: 60%;
-  margin: 0 auto;
+  /*上 0，下 1rem，左右 auto，浏览器会把剩余空间平均分到左右 */
+  margin: 0 auto 1rem auto;
+  
   background-color: transparent;
 }
 
@@ -238,8 +271,8 @@ export default {
 .passwordButton {
   background-color: transparent;
   border-radius: 4px;
-  border-color: #65676c;
-  color: #67606F;
+  border-color: #286d25;
+  color: #286d25;
 }
 
 .passwordButton:disabled {
@@ -248,13 +281,18 @@ export default {
   cursor: not-allowed;
 }
 
-.button-group {
+.button {
   display: flex;
   justify-content: center;
-  margin-top: 1rem;
+  margin: 1rem;
 }
 
-/* 通用样式 */
+.functionalButtons {
+  display: flex;
+  justify-content: center;
+  margin: 1rem;
+}
+
 .el-form-item :deep(.el-form-item__label) {
   color: #000000;
 }
@@ -272,7 +310,6 @@ export default {
   box-shadow: 0 0 0 2px rgba(1, 124, 77, 0.689);
 }
 
-/* 按钮样式 */
 .el-button--primary,
 .el-button--success {
   border-radius: 6px;
@@ -293,6 +330,6 @@ export default {
 
 .el-input.is-disabled :deep(.el-input__inner) {
   background-color: #e6e6e6;
-  color: #67606F;
+  color: #67606f;
 }
 </style>

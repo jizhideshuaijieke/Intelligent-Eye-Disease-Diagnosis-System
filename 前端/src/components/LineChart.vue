@@ -1,33 +1,30 @@
-<template>
-  <div id="lineChart">
-    <div id="LineChart" style="width: calc(100% - 40px); height: calc(100% - 40px)"></div>
+﻿<template>
+  <div class="line-chart-wrapper">
+    <div ref="lineChart" class="line-chart"></div>
   </div>
 </template>
 
 <script>
-import * as echarts from "echarts";
+import * as echarts from 'echarts';
+
 export default {
-  // props为父组件需要传递的参数
   props: {
     titleText: {
-      type: String,//要传递的数据类型
-      default: "折线图示例",//父组件没有传递时的默认值
+      type: String,
+      default: '折线图示例',
     },
-    // 接收父组件传递的数据
     chartData: {
       type: Array,
       default: () => [],
     },
-    // 接收父组件传递的横坐标值
     xAxisValues: {
       type: Array,
       default: () => [],
     },
     axisTextColor: {
       type: String,
-      default: "#333333",
+      default: '#333333',
     },
-    // 控制是否使用颜色渐变
     isGradient: {
       type: Boolean,
       default: true,
@@ -36,82 +33,64 @@ export default {
       type: Boolean,
       default: false,
     },
-    // 接收父组件传递的渐进颜色
     colors: {
       type: Array,
-      default: () => ["#ff0000","#00ff00"],
+      default: () => ['#84fab0', '#8fd3f4'],
     },
   },
   data() {
-    return {};
+    return {
+      myChart: null,
+    };
   },
   mounted() {
-    this.renderLineChart();
+    this.updateChart();
+    window.addEventListener('resize', this.handleResize);
+  },
+  activated() {
+    this.$nextTick(() => this.handleResize());
   },
   beforeDestroy() {
-    // 组件销毁前移除事件监听
-    window.removeEventListener("resize", this.handleResize);
-    // 销毁 ECharts 实例
+    window.removeEventListener('resize', this.handleResize);
     if (this.myChart) {
       this.myChart.dispose();
+      this.myChart = null;
     }
   },
   methods: {
-    renderLineChart() {
-      // 获取 DOM 元素
-      const chartDom = document.getElementById("LineChart");
-      // 初始化 ECharts 实例
-      this.myChart = echarts.init(chartDom);
-      // 配置图表选项
-      const option = this.getChartOption();
-      // 使用配置项显示图表
-      this.myChart.setOption(option);
-      // 监听窗口大小变化事件
-      window.addEventListener("resize", this.handleResize);
-    },
-    handleResize() {
-      if (this.myChart) {
-        // 窗口大小改变时，重新调整图表大小
-        this.myChart.resize();
+    ensureChart() {
+      const chartDom = this.$refs.lineChart;
+      if (!chartDom) return false;
+      if (!this.myChart) {
+        this.myChart = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
       }
+      return true;
     },
     getAreaColor() {
-      if (this.isGradient) {
-        return {
-          type: "linear",
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            {
-              offset: 0,
-              color: this.colors[0],
-            },
-            {
-              offset: 0.4,
-              color: this.colors[0],
-            },
-            {
-              offset: 1,
-              color: this.colors[1],
-            },
-          ],
-          global: false,
-        };
-      }
-      return this.colors[0];
+      if (!this.isGradient) return this.colors[0];
+      return {
+        type: 'linear',
+        x: 0,
+        y: 0,
+        x2: 0,
+        y2: 1,
+        colorStops: [
+          { offset: 0, color: this.colors[0] },
+          { offset: 0.4, color: this.colors[0] },
+          { offset: 1, color: this.colors[1] },
+        ],
+      };
     },
     getChartOption() {
       return {
         title: {
           text: this.titleText,
           textStyle: {
-            color: "rgb(145, 158, 182)",
+            color: 'rgb(145, 158, 182)',
           },
         },
         xAxis: {
-          type: "category",
+          type: 'category',
           data: this.xAxisValues,
           axisLabel: {
             color: this.axisTextColor,
@@ -119,49 +98,47 @@ export default {
           axisPointer: {
             show: true,
             label: {
-              show: false // 隐藏x轴指示标签
+              show: false,
             },
             lineStyle: {
               color: '#666',
               width: 1,
-              type: 'solid'
-            }
-          }
+              type: 'solid',
+            },
+          },
         },
         yAxis: {
-          type: "value",
+          type: 'value',
           axisLabel: {
-            color: "#333333",
+            color: this.axisTextColor,
           },
           axisLine: {
             show: true,
             lineStyle: {
-              color: "#666666"
-            }
+              color: '#666666',
+            },
           },
           splitLine: {
             show: true,
             lineStyle: {
-              color:"#aaaaaa"
-            }
-          }
+              color: '#aaaaaa',
+            },
+          },
         },
         series: [
           {
             data: this.chartData,
-            type: "line",
-            color: "#4c6f68",
+            type: 'line',
+            color: '#4c6f68',
             label: {
               show: false,
               position: 'top',
-              textStyle: {
-                fontSize: 15
-              }
+              fontSize: 15,
             },
             emphasis: {
               label: {
-                show: true
-              }
+                show: true,
+              },
             },
             areaStyle: {
               color: this.getAreaColor(),
@@ -170,26 +147,46 @@ export default {
           },
         ],
       };
-    }
-  },
-  watch:{
-    chartData(){
+    },
+    updateChart() {
+      if (!this.ensureChart()) return;
+      this.myChart.setOption(this.getChartOption(), true);
+    },
+    handleResize() {
       if (this.myChart) {
-        const option = this.getChartOption();
-        this.myChart.setOption(option);
+        this.myChart.resize();
       }
-    }
-  }
+    },
+  },
+  watch: {
+    chartData: {
+      deep: true,
+      handler() {
+        this.updateChart();
+      },
+    },
+    xAxisValues: {
+      deep: true,
+      handler() {
+        this.updateChart();
+      },
+    },
+    titleText() {
+      this.updateChart();
+    },
+  },
 };
 </script>
 
 <style scoped>
-#lineChart {
+.line-chart-wrapper {
   width: 100%;
-  height: 100%
+  height: 100%;
 }
 
-#LineChart {
+.line-chart {
   margin: 20px;
+  width: calc(100% - 40px);
+  height: calc(100% - 40px);
 }
 </style>

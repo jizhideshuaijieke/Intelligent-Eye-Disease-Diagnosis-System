@@ -1,34 +1,30 @@
 # 前端说明
 
-## 本地启动
+## 运行方式（浏览器模式）
 
 ```powershell
 npm install
+npm run mock
 npm run serve
 ```
 
-默认端口：`7000`
+访问地址：`http://127.0.0.1:7000`
 
-## Mock 桥接
+## 脚本说明
 
-```powershell
-node mock-server.js
-```
-
-默认端口：`8800`
+1. `npm run serve`：启动 Vue 开发服务器（7000）
+2. `npm run mock`：启动 Mock API 服务（8800）
+3. `npm run build`：打包生产构建
+4. `npm run lint`：代码检查
 
 ## 环境变量
 
-复制模板：
-
-```powershell
-Copy-Item .env.example .env.local
-```
-
-关键变量：
+可参考 `.env.example` 或新增 `.env.local`：
 
 1. `VUE_APP_REAL_API`
 2. `VUE_APP_MOCK_API`
 3. `VUE_APP_API_HEALTH_PATH`
 
-完整部署流程见仓库根目录 [README.md](../README.md) 与 [DEPLOYMENT.md](../DEPLOYMENT.md)。
+## 说明
+
+项目统一使用浏览器端演示与部署。

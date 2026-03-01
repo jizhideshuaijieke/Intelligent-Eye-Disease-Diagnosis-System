@@ -1,28 +1,52 @@
-<template>
+﻿<template>
   <div id="Login">
     <div class="login-form">
       <div class="login-header">
         <img src="@/assets/logo.png" alt="Logo" class="login-logo" />
         <h2 class="login-title">{{ isRegistering ? '用户注册' : '用户登录' }}</h2>
       </div>
-      <el-form :model="loginForm" :rules="loginRules" ref="loginForm" @keyup.enter.native="handleSubmit">
+
+      <el-form
+        ref="loginForm"
+        :model="loginForm"
+        :rules="loginRules"
+        @keyup.enter.native="handleSubmit"
+      >
         <el-form-item prop="username">
-          <el-input v-model="loginForm.username" prefix-icon="el-icon-user"
-            :placeholder="isRegistering ? '请输入用户名' : '请输入用户名'" class="custom-input"></el-input>
+          <el-input
+            v-model="loginForm.username"
+            prefix-icon="el-icon-user"
+            :placeholder="isRegistering ? '请输入用户名' : '请输入用户名'"
+            class="custom-input"
+          />
         </el-form-item>
 
         <el-form-item prop="password">
-          <el-input v-model="loginForm.password" prefix-icon="el-icon-lock" type="password" show-password
-            :placeholder="isRegistering ? '请输入密码' : '请输入密码'" class="custom-input"></el-input>
+          <el-input
+            v-model="loginForm.password"
+            prefix-icon="el-icon-lock"
+            type="password"
+            show-password
+            :placeholder="isRegistering ? '请输入密码' : '请输入密码'"
+            class="custom-input"
+          />
         </el-form-item>
 
         <template v-if="isRegistering">
           <div class="inline-form-items">
             <el-form-item label="邮箱" class="inline-form-item" prop="email">
-              <el-input v-model="loginForm.email" prefix-icon="el-icon-message" class="custom-input"></el-input>
+              <el-input
+                v-model="loginForm.email"
+                prefix-icon="el-icon-message"
+                class="custom-input"
+              />
             </el-form-item>
             <el-form-item label="手机号" class="inline-form-item" prop="phone">
-              <el-input v-model="loginForm.phone" prefix-icon="el-icon-phone" class="custom-input"></el-input>
+              <el-input
+                v-model="loginForm.phone"
+                prefix-icon="el-icon-phone"
+                class="custom-input"
+              />
             </el-form-item>
           </div>
         </template>
@@ -56,37 +80,31 @@ export default {
         phone: ''
       },
       loginRules: {
-        username: [
-          { required: true, message: '请输入用户名', trigger: 'blur' }
-        ],
-        password: [
-          { required: true, message: '请输入密码', trigger: 'blur' }
-        ]
+        username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
       }
     };
   },
   methods: {
     handleSubmit() {
-      this.$refs.loginForm.validate(valid => {
-        if (valid) {
-          this.loading = true;
-          setTimeout(() => {
-            this.loading = false;
-            if (this.isRegistering) {
-              this.$message.success('注册成功！');
-              this.$refs.loginForm.resetFields();
-              this.isRegistering = false;
-            } else {
-              // 兼容浏览器环境（无 Electron）
-              if (window.electronAPI && window.electronAPI.sendLoginSuccess) {
-                window.electronAPI.sendLoginSuccess();
-              } else {
-                this.$message.success('登录成功！');
-                this.$router.push('/analyses');
-              }
-            }
-          }, 1000);
+      this.$refs.loginForm.validate((valid) => {
+        if (!valid) {
+          return;
         }
+
+        this.loading = true;
+        setTimeout(() => {
+          this.loading = false;
+          if (this.isRegistering) {
+            this.$message.success('注册成功！');
+            this.$refs.loginForm.resetFields();
+            this.isRegistering = false;
+            return;
+          }
+
+          this.$message.success('登录成功！');
+          this.$router.push('/analyses');
+        }, 1000);
       });
     },
     toggleForm() {
@@ -113,16 +131,13 @@ export default {
 }
 
 .login-form {
-  width: 100%;
-  /* 表单宽度填充整个窗口 */
-  height: 100%;
-  /* 表单高度填充整个窗口 */
-  padding: 20px;
-  /* 适当调整内边距 */
+  width: min(92vw, 520px);
+  height: auto;
+  padding: 24px;
   background: #fff;
-  /* 去除圆角，因为要填充整个窗口 */
   box-sizing: border-box;
-  /* 使内边距包含在宽度和高度内 */
+  border: 1px solid #dfe4ea;
+  border-radius: 12px;
 }
 
 .login-header {
@@ -152,8 +167,8 @@ export default {
 }
 
 .custom-input :deep(.el-input__inner):focus {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.15);
+  border-color: #2c6d62;;
+  box-shadow: 0 0 0 2px rgba(119, 247, 168, 0.15);
 }
 
 .inline-form-items {
@@ -181,13 +196,13 @@ export default {
 }
 
 .login-option:hover {
-  color: #409eff;
+  color: #2c6d62;;
 }
 
 .login-btn {
   width: 100%;
   height: 40px;
-  background: #409eff;
+  background: #2c6d4b;
   color: white;
   border: none;
   border-radius: 8px;
@@ -197,10 +212,9 @@ export default {
 }
 
 .login-btn:hover {
-  background: #66b1ff;
+  background: #4ab67e;
 }
 
-/* 响应式调整 */
 @media (max-width: 480px) {
   .login-form {
     padding: 15px;
