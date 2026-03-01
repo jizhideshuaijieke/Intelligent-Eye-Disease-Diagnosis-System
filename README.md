@@ -49,7 +49,7 @@ cd 前端
 npm install
 ```
 
-### 启动模型服务（开发模式）
+### 模型服务
 
 ```powershell
 conda activate eye-model
@@ -57,14 +57,14 @@ cd 模型
 python app.py
 ```
 
-### 启动 Mock / 桥接服务
+### Mock / 桥接服务
 
 ```powershell
 cd 前端
 node mock-server.js
 ```
 
-### 启动前端开发服务（热更新）
+### 前端热更新
 
 ```powershell
 cd 前端
