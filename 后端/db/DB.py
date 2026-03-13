@@ -1,19 +1,29 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
+
 from core.config import settings
 
-# 数据库连接URL
-DATABASE_URL = settings.DATABASE_URL
 
-# 创建引擎
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    settings.DATABASE_URL,
+    echo=settings.DATABASE_ECHO,
+    pool_pre_ping=True,
+)
 
-# 创建会话工厂
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+    expire_on_commit=False,
+)
 
-# 定义基类
 Base = declarative_base()
+
+
+def init_db() -> None:
+    from models import entity  # noqa: F401
+
+    Base.metadata.create_all(bind=engine)
 
 
 def get_db():

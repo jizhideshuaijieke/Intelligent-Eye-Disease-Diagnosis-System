@@ -1,30 +1,36 @@
 # 前端说明
 
-## 运行方式（浏览器模式）
+## 概述
+
+该目录是项目的 Web 前端，基于 Vue 2、Vue Router、Element UI、Axios 和 ECharts 实现图像上传、分析展示、病例管理、统计可视化与医生信息维护。
+
+## 启动
 
 ```powershell
+Copy-Item .env.example .env.local
 npm install
-npm run mock
 npm run serve
 ```
 
-访问地址：`http://127.0.0.1:7000`
+默认访问地址：`http://127.0.0.1:7000`
 
-## 脚本说明
+## 后端配置
 
-1. `npm run serve`：启动 Vue 开发服务器（7000）
-2. `npm run mock`：启动 Mock API 服务（8800）
-3. `npm run build`：打包生产构建
-4. `npm run lint`：代码检查
+前端当前只连接真实 Python 后端，请在 `.env.local` 中配置业务后端地址：
 
-## 环境变量
+```env
+VUE_APP_API_BASE=http://127.0.0.1:8800
+```
 
-可参考 `.env.example` 或新增 `.env.local`：
+如果后端需要调用模型服务，请同时确保 `后端/.env` 中的 `AI_MODEL_URL` 指向可用的 Flask 模型服务。
 
-1. `VUE_APP_REAL_API`
-2. `VUE_APP_MOCK_API`
-3. `VUE_APP_API_HEALTH_PATH`
+## 常用脚本
+
+- `npm run serve`：启动开发服务器
+- `npm run build`：构建生产资源
+- `npm run lint`：执行代码检查
 
 ## 说明
 
-项目统一使用浏览器端演示与部署。
+- 登录、统计、病例保存等功能已经接入真实后端
+- 图像分析请求发送到 `/aibo`，由后端再转发给模型服务处理

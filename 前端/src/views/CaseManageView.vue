@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div id="case-manage">
     <div class="dialog-container">
       <AIDialog
@@ -136,12 +136,13 @@
 </template>
 
 <script>
-import ImageUploader from '@/components/ImageUploader.vue';
-import AIDialog from '@/components/AIDialog.vue';
-import PdfExportButton from '@/components/PdfExportButton.vue';
 import axios from 'axios';
+
+import AIDialog from '@/components/AIDialog.vue';
+import ImageUploader from '@/components/ImageUploader.vue';
+import PdfExportButton from '@/components/PdfExportButton.vue';
 import { getApiUrl } from '@/api/config';
-import { getPendingCaseMeta, clearPendingCaseMeta, recordExportedCase } from '@/utils/statisticsCaseStore';
+import { STATS_UPDATED_EVENT, clearPendingCaseMeta, getPendingCaseMeta } from '@/utils/statisticsCaseStore';
 
 export default {
   components: {
@@ -185,8 +186,8 @@ export default {
     };
   },
   activated() {
-    this.InitCase();
-    this.InitAdvice();
+    this.initCase();
+    this.initAdvice();
     this.syncPendingCaseMeta();
   },
   methods: {
@@ -217,32 +218,50 @@ export default {
       }
       this.pendingCaseMeta = meta;
     },
-    handleExportSuccess() {
-      const age = Number(this.form.age);
-      const diagnosisName = String(this.pendingCaseMeta?.topDiagnosisName || '').trim();
-      const annotationCount = Number(this.pendingCaseMeta?.annotationCount || 0);
-
-      const result = recordExportedCase({
-        diagnosisName,
-        age,
-        monthIndex: new Date().getMonth(),
-        annotationCount,
-        caseId: this.form.caseID,
-      });
-
-      if (result.ok) {
-        clearPendingCaseMeta();
-        this.pendingCaseMeta = null;
-        this.$message.success('病例已计入可视化统计。');
+    async handleExportSuccess() {
+      if (!String(this.form.caseID || '').trim()) {
+        this.$message.warning('请先填写病历号，再导出并写入数据库。');
+        return;
+      }
+      if (!String(this.form.name || '').trim()) {
+        this.$message.warning('请先填写患者姓名，再导出并写入数据库。');
         return;
       }
 
-      this.$message.warning(result.message || '当前病例未写入统计。');
+      const diagnosisName = String(this.pendingCaseMeta?.topDiagnosisName || '').trim();
+      const outcome = String(this.form.clinicalDiagnosis || diagnosisName).trim();
+      const age = this.form.age === '' ? null : Number(this.form.age);
+
+      try {
+        const response = await axios.post(getApiUrl('/saveCaseHistory'), {
+          name: this.form.name,
+          gender: this.form.gender,
+          age: Number.isFinite(age) ? age : null,
+          reportId: this.form.caseID,
+          time: this.form.diagnoseDate,
+          outcome,
+          leftPhoto: this.form.leftEyeImageBase64,
+          rightPhoto: this.form.rightEyeImageBase64,
+          aiSuggestion: this.form.advice,
+        });
+
+        const payload = response?.data || {};
+        if (payload.code !== 1) {
+          throw new Error(payload.message || '病例写入失败');
+        }
+
+        clearPendingCaseMeta();
+        this.pendingCaseMeta = null;
+        window.dispatchEvent(new CustomEvent(STATS_UPDATED_EVENT));
+        this.$message.success('病例已写入数据库并同步到统计图表。');
+      } catch (error) {
+        this.$message.error(error?.message || '病例写入数据库失败');
+      }
     },
     handleExportError() {
-      // 导出失败时不写入统计。
+      // Ignore export errors here.
     },
-    InitCase() {
+    initCase() {
       const query = this.$route.query || {};
 
       if (query.patientName) this.form.name = query.patientName;
@@ -273,7 +292,7 @@ export default {
         imagesRaw.forEach(assignByName);
       }
     },
-    InitAdvice() {
+    initAdvice() {
       const query = this.$route.query || {};
       const inputElements = this.parseQueryValue(query.inputs);
       const validInputElements = Array.isArray(inputElements) ? inputElements : [];
@@ -357,7 +376,6 @@ export default {
 #case-manage {
   width: 100%;
   height: 100%;
-  /* position: relative; */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -368,9 +386,7 @@ export default {
   flex: 1;
   height: 100vh;
   overflow: auto;
-  padding: 20px;
   box-sizing: border-box;
-  /* position: relative; */
   padding: 30px;
 }
 
@@ -378,12 +394,9 @@ export default {
   width: 400px;
   height: 100%;
   background: transparent;
-  /* background: #f8f9fa; */
-  /* border-right: 1px solid #e4e7ed; */
   position: relative;
   transition: transform 0.3s ease;
   transform: translateX(0);
-  /* z-index: 1000; */
 }
 
 .dialog-container.shrink {
@@ -393,7 +406,6 @@ export default {
 .page-content {
   height: calc(100% - 40px);
   width: 100%;
-  /* width: auto; */
   padding: 20px 0;
 }
 
@@ -403,7 +415,6 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* padding: 20px; */
 }
 
 .case-content {
@@ -413,9 +424,6 @@ export default {
   left: 2%;
   width: 96%;
   height: calc(100% - 20px);
-  /* display: flex;
-  justify-content: center;
-  align-items: center; */
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
@@ -428,15 +436,13 @@ export default {
 }
 
 .el-row {
-  gap: 24px;
+  display: flex;
+  gap: 20px;
 }
 
 .left-col {
-  /* margin: 3rem 0 0 0; */
   height: 100%;
-  /* border: 1px solid #65676c; */
   border-radius: 10px;
-  /* box-shadow: 0 2px 8px rgba(0,0,0,0.05); */
   background: #f8f9fa;
   padding: 1rem;
 }
@@ -445,18 +451,15 @@ export default {
   display: flex;
   width: 100%;
   gap: 20px;
-  /* padding: 0; */
   clear: both;
   border-bottom: 1px solid #65676c;
   padding-bottom: 1rem;
 }
 
 .eye-data-container {
-  /* margin: 1rem 0 0 0; */
   display: flex;
   width: 100%;
   gap: 20px;
-  /* padding: 0; */
   clear: both;
 }
 
@@ -474,16 +477,13 @@ export default {
 }
 
 .right-col {
-  /* margin: 3rem 0 0 0; */
   height: calc(100% - 40px);
   padding: 7px 20px;
   background: #f8f9fa;
   border-radius: 10px;
-  /* box-shadow: 0 2px 8px rgba(0,0,0,0.05); */
 }
 
 .image-container {
-  /* padding: 5px 0 0 0; */
   display: flex;
   gap: 20px;
   clear: both;
@@ -504,11 +504,9 @@ export default {
 
 .image {
   flex: 1;
-  /* display: flex; */
   width: 100%;
   height: 100%;
   aspect-ratio: 1/1;
-  /* border: 2px dashed #dcdde1; */
   border-radius: 8px;
   background: #f8f9fa;
   display: flex;
@@ -526,12 +524,10 @@ export default {
 .el-form-item:deep(.el-textarea__inner),
 .el-form-item:deep(.el-input__inner) {
   width: calc(100% - 20px);
-  /* background-color: transparent; */
   color: #696969;
   border-color: #696969;
   background: #f8f9fa;
   border-radius: 8px;
-  /* border-color: #dcdde1; */
   transition: all 0.3s ease;
 }
 
@@ -542,12 +538,6 @@ export default {
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-.el-row {
-  display: flex;
-  gap: 20px;
-}
-
-/* 鍏ㄥ眬琛ㄥ崟鏍囩宸﹀榻?*/
 :deep(.el-form-item__label) {
   text-align: left;
   width: 100%;
@@ -563,5 +553,3 @@ export default {
   margin-top: 4px;
 }
 </style>
-
-

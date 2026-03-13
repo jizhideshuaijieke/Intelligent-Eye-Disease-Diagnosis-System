@@ -1,38 +1,54 @@
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.orm import relationship
+
 from db.DB import Base
 
 
-class Paients(Base):
-    __tablename__ = 'paients'
+class Doctor(Base):
+    __tablename__ = "doctor"
 
-    name = Column(String(20))
-    id = Column(Integer, primary_key=True, index=True)
-    gender = Column(String(5))
-    age = Column(Integer)
-    time = Column(String(50))
-    reportId = Column(String(50))
-    leftPhoto = Column(Text)
-    rightPhoto = Column(Text)
-    outCome = Column(String(50))
+    accountId = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(50), nullable=True)
+    gender = Column(String(10), nullable=True)
+    age = Column(Integer, nullable=True)
+    department = Column(String(50), nullable=True)
+    photo = Column(MEDIUMTEXT, nullable=True)
 
-
-class User(Base):
-    __tablename__ = 'users'
-
-    name = Column(String(20))
-    accountId = Column(Integer, primary_key=True, index=True)
-    gender = Column(String(5))
-    age = Column(Integer)
-    department = Column(String(50))
-    email = Column(String(50))
-    phone = Column(String(50))
-    password = Column(String(50))
-    photo = Column(Text)
+    login = relationship("Logging", back_populates="doctor", uselist=False)
 
 
-class Test(Base):
-    __tablename__ = 'test'
+class Logging(Base):
+    __tablename__ = "Logging"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(50))
-    age = Column(Integer)
+    accountId = Column(Integer, ForeignKey("doctor.accountId"), primary_key=True, nullable=False)
+    email = Column(String(100), nullable=True)
+    phone = Column(String(20), nullable=True)
+    password = Column(MEDIUMTEXT, nullable=True)
+
+    doctor = relationship("Doctor", back_populates="login")
+
+
+class CaseHistory(Base):
+    __tablename__ = "Case_history"
+
+    reportId = Column(String(50), primary_key=True, nullable=False)
+    time = Column(String(50), nullable=True)
+    outcome = Column(String(100), nullable=True)
+    leftPhoto = Column(MEDIUMTEXT, nullable=True)
+    rightPhoto = Column(MEDIUMTEXT, nullable=True)
+    aiSuggestion = Column(MEDIUMTEXT, nullable=True)
+
+    patient = relationship("Patient", back_populates="case_history", uselist=False)
+
+
+class Patient(Base):
+    __tablename__ = "patient"
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(50), nullable=True)
+    gender = Column(String(10), nullable=True)
+    age = Column(Integer, nullable=True)
+    reportId = Column(String(50), ForeignKey("Case_history.reportId"), nullable=False, unique=True)
+
+    case_history = relationship("CaseHistory", back_populates="patient")

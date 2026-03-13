@@ -1,28 +1,54 @@
-# 后端说明（FastAPI）
+# 后端说明
+
+## 概述
+
+该目录是项目当前使用的真实业务后端，基于 FastAPI、SQLAlchemy 和 MySQL 实现账号认证、病例管理、统计分析、邮件发送与模型结果接入。
+
+## 数据库
+
+- 初始化脚本位于 `db/init_schema.sql`
+- 启动前请先创建 MySQL 数据库，并执行该脚本
+- `Case_history.reportId` 已统一为 `VARCHAR(50)`，用于匹配前端病历号格式和 `patient.reportId` 外键
 
 ## 启动
 
 ```powershell
-pip install -r requirements.txt
 Copy-Item .env.example .env
+pip install -r requirements.txt
 python main.py
 ```
 
-默认端口：`8800`
+默认地址：`http://127.0.0.1:8800`
 
-## 关键配置
+## 环境配置
 
-`.env` 中至少需要：
+`.env` 中至少需要正确配置以下内容：
 
-1. `MYSQL_*`
-2. `REDIS_*`
-3. `AI_MODEL_URL`
-4. `JWT_SECRET_KEY`
+- `MYSQL_*`
+- `HOST`
+- `PORT`
+- `JWT_*`
+- `AI_MODEL_URL`
+- `MAIL_*`
 
-如果要启用外部 AI 问答，还需配置：
+## 主要接口
 
-1. `AI_CHAT_API_KEY`
-2. `AI_CHAT_HOST`
-3. `AI_CHAT_PATH`
+- `POST /registerByAccount`
+- `POST /loginByAccount`
+- `POST /getPersonalInform`
+- `POST /updatePersonalInform`
+- `POST /changePassword`
+- `POST /saveCaseHistory`
+- `GET /getCaseHistory/{reportId}`
+- `GET /getPatientsNum`
+- `GET /getDiseasesDistribution`
+- `POST /getDiseaseConditionByAge`
+- `POST /aibo`
+- `POST /aiSuggestion`
+- `POST /aiQuestion`
+- `POST /sendEmail`
 
-完整部署流程见仓库根目录 [README.md](../README.md) 与 [DEPLOYMENT.md](../DEPLOYMENT.md)。
+## 说明
+
+- 当前业务后端已经直接连接 MySQL，并直接提供登录、统计和病例管理接口
+- 图像分析请求会由 `/aibo` 转发到模型服务，请确保 `AI_MODEL_URL` 可访问

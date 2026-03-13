@@ -1,10 +1,12 @@
 import uvicorn
-
-from api import disease_date_api, ai_api, smtp_api, ai_model_api, user_api
 from fastapi import FastAPI
-from core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
-app = FastAPI()
+
+from api import ai_api, ai_model_api, case_api, disease_date_api, smtp_api, user_api
+from core.config import settings
+from db.DB import init_db
+
+app = FastAPI(title="Eye Diagnosis Backend")
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,7 +17,18 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+def startup_event() -> None:
+    init_db()
+
+
+@app.get("/health")
+def health_check() -> dict:
+    return {"code": 1, "message": "success", "data": "ok"}
+
+
 app.include_router(disease_date_api.router)
+app.include_router(case_api.router)
 app.include_router(ai_api.router)
 app.include_router(smtp_api.router)
 app.include_router(ai_model_api.router)

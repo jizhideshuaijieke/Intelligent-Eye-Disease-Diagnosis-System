@@ -417,8 +417,17 @@ export default {
       this.isLoading = true
       try {
         const res = await axios.post(getApiUrl('/aibo'), this.images)
+        if (res?.data?.code !== 1) {
+          this.$alert(res?.data?.message || '分析失败，请检查模型服务。', '错误', { confirmButtonText: '确定' })
+          return
+        }
+
         this.setUpName = '重新进行分析'
         const results = Array.isArray(res?.data?.data) ? res.data.data : []
+        if (!results.length) {
+          this.$alert('分析未返回结果，请检查模型服务状态。', '错误', { confirmButtonText: '确定' })
+          return
+        }
 
         if (!this.isBulkUpload) {
           const sortedResults = this.sortByIndex(results)

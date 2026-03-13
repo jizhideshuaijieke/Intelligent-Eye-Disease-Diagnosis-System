@@ -1,28 +1,23 @@
-import logging
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
-import jwt
+from jose import JWTError, ExpiredSignatureError, jwt
 
 from core.config import settings
-from datetime import datetime, timedelta
 
 
-def create_jwt_token(user_id: int, username: str) -> str:
-    # 定义 payload
+def create_jwt_token(account_id: int, username: str | None) -> str:
     payload = {
-        "user_id": user_id,
-        "username": username,
-        "exp": datetime.utcnow() + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)  # 设置过期时间
+        "account_id": account_id,
+        "user_id": account_id,
+        "username": username or "",
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES),
     }
-    # 生成 JWT
-    token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-    return token
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def decode_jwt_token(token: str) -> dict:
+def decode_jwt_token(token: str) -> dict[str, Any] | None:
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        logging.info("令牌过期")
-    except jwt.InvalidTokenError:
-        logging.info("无效的令牌")
+        return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    except (ExpiredSignatureError, JWTError):
+        return None

@@ -1,119 +1,128 @@
 import logging
+
 import requests
+from fastapi import APIRouter
 
 from core.config import settings
-from fastapi import APIRouter
 from models.template import DiseaseDate
 
-
-
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+_REQUEST_TIMEOUT_SECONDS = 120
+_DIABETIC_RETINOPATHY_KEY = "\u7cd6\u5c3f\u75c5\u6027\u89c6\u7f51\u819c\u75c5\u53d8"
+
+
+def _post_json(url: str, payload: dict, name: str, index: int) -> dict:
+    response = requests.post(url, json=payload, timeout=_REQUEST_TIMEOUT_SECONDS)
+    response.raise_for_status()
+
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise ValueError(f"invalid JSON from upstream for {name}#{index}") from exc
+
+
+def _normalize_fundus_probabilities(content: dict) -> list[dict]:
+    main_probabilities = dict(content.get("main_classification", {}).get("probabilities", {}))
+    sub_probabilities = dict(content.get("sub_classification", {}).get("probabilities", {}))
+    merged_probabilities = dict(main_probabilities)
+
+    diabetic_probability = main_probabilities.get(_DIABETIC_RETINOPATHY_KEY)
+    if diabetic_probability and diabetic_probability > 0.5 and sub_probabilities:
+        merged_probabilities.pop(_DIABETIC_RETINOPATHY_KEY, None)
+        total = sum(sub_probabilities.values()) or 1
+        merged_probabilities.update(
+            {
+                key: round((value / total) * diabetic_probability, 3)
+                for key, value in sub_probabilities.items()
+            }
+        )
+
+    sorted_probabilities = sorted(
+        merged_probabilities.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    )
+    return [
+        {"name": name, "probability": probability}
+        for name, probability in sorted_probabilities
+    ]
+
+
+def _build_fundus_result(item: DiseaseDate) -> dict:
+    content = _post_json(
+        f"{settings.AI_MODEL_URL}/api/fundus_analysis",
+        {"image": item.path},
+        item.name,
+        item.index,
+    )
+
+    probability_map = content.get("vessel_segmentation", {}).get("probability_map")
+    enhanced_image = content.get("enhanced_image")
+    if not probability_map or not enhanced_image:
+        raise ValueError(f"missing fundus fields for {item.name}#{item.index}")
+
+    return {
+        "index": item.index,
+        "name": item.name,
+        "path": probability_map,
+        "probabilities": _normalize_fundus_probabilities(content),
+        "enhanced_image": enhanced_image,
+    }
+
+
+def _build_oct_result(item: DiseaseDate) -> dict:
+    content = _post_json(
+        f"{settings.AI_MODEL_URL}/api/oct_segmentation",
+        {"image": item.path},
+        item.name,
+        item.index,
+    )
+
+    segmentation_result = content.get("segmentation_result")
+    if not segmentation_result:
+        raise ValueError(f"missing oct fields for {item.name}#{item.index}")
+
+    return {
+        "index": item.index,
+        "name": item.name,
+        "path": segmentation_result,
+        "probabilities": [],
+    }
 
 
 @router.post("/aibo")
 async def predict(request: list[DiseaseDate]) -> dict:
-    # payload = decode_jwt_token(request.token)
-    # if not payload:
-    #     return {
-    #         "code": 0,
-    #         "message": "token验证失败",
-    #         "data": ""
-    #     }
-    url = settings.AI_MODEL_URL+"/api/fundus_analysis"
-    url2 = settings.AI_MODEL_URL+"/api/oct_segmentation"
     data = []
-    for i in request:
-        if i.name == "left-oct" or i.name == "right-oct":
-            datas = {
-                "image": i.path
-            }
-            try:
-                contents_oct = requests.post(url2, json=datas)
-                print("OCT分割接口响应码"+str(contents_oct.status_code))
-                if contents_oct.status_code == 200:
-                    content_oct = contents_oct.json()
-                    element = {
-                        "index": i.index,
-                        "name": i.name,
-                        "path": content_oct["segmentation_result"],
-                        "probabilities": [],
-                    }
-                    data.append(element)
-            except Exception as e:
-                logging.error(e)
-                continue
-        else:
-            base64_image = {
-                "image": i.path,
-            }
-            try:
-                contents = requests.post(url, json=base64_image)
-                print("概率获取接口响应码"+str(contents.status_code))
-            except Exception as e:
-                logging.error(e)
-            if contents:
-                content = contents.json()
+    errors = []
 
-                merged_probabilities = content["main_classification"]["probabilities"]
-                if "糖尿病性视网膜病变" in content["main_classification"]["probabilities"] and content["main_classification"]["probabilities"]["糖尿病性视网膜病变"] > 0.5:
-                    tag_tng = content["main_classification"]["probabilities"].get("糖尿病性视网膜病变")
-                    del content["main_classification"]["probabilities"]["糖尿病性视网膜病变"]
-                    sum = 0
-                    for key2, value2 in content["sub_classification"]["probabilities"].items():
-                        sum += value2
-                    for key2, value2 in content["sub_classification"]["probabilities"].items():
-                        content["sub_classification"]["probabilities"][key2] = round((value2 / sum) * tag_tng, 3)
+    for item in request:
+        try:
+            if item.name in {"left-oct", "right-oct"}:
+                data.append(_build_oct_result(item))
+            else:
+                data.append(_build_fundus_result(item))
+        except requests.RequestException as exc:
+            logger.exception("upstream AI request failed for %s#%s", item.name, item.index)
+            errors.append(f"{item.name}#{item.index}: {exc}")
+        except Exception as exc:
+            logger.exception("AI analysis failed for %s#%s", item.name, item.index)
+            errors.append(f"{item.name}#{item.index}: {exc}")
 
-                    merged_probabilities =content["main_classification"]["probabilities"] | content["sub_classification"]["probabilities"]
-
-                sorted_probabilities = dict(sorted(merged_probabilities.items(), key=lambda item: item[1], reverse=True))
-                probabilities = [{"name": name, "probability": probability} for name, probability in sorted_probabilities.items()]
-
-                element = {
-                    "index": i.index,
-                    "name": i.name,
-                    "path": content["vessel_segmentation"]["probability_map"],
-                    "probabilities": probabilities,
-                    "enhanced_image": content["enhanced_image"]
-                }
-                data.append(element)
+    if not data:
+        return {
+            "code": 0,
+            "message": "AI analysis failed. Check the model service on port 5000.",
+            "data": [],
+            "errors": errors,
+        }
 
     response = {
         "code": 1,
-        "message": "success",
-        "data": data
+        "message": "success" if not errors else "partial success",
+        "data": data,
     }
+    if errors:
+        response["errors"] = errors
     return response
-
-
-# @router.post("/aioct")
-# async def predict(request: str) -> dict:
-#     payload = decode_jwt_token(request.token)
-#     if not payload:
-#         return {
-#             "code": 0,
-#             "message": "token验证失败",
-#             "data": ""
-#         }
-#     url = settings.AI_MODEL_URL + "/api/oct_segmentation"
-#     # request = requests.get(url)
-#     # message = {
-#     #     "segmentation_result": "base64编码的分割掩码图像"
-#     # }
-#     request_json = {
-#         "image": "base64编码的OCT图像"
-#     }
-#     response = requests.post(url, json=request_json)
-#     if response:
-#         data = response.json()
-#         response = {
-#             "code": 1,
-#             "message": "success",
-#             "data": data["segmentation_result"]
-#         }
-#         return response
-
-
-
-
-

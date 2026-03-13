@@ -7,8 +7,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "start": "npm run serve",
-    "mock": "node mock-server.js"
+    "start": "npm run serve"
   },
   "dependencies": {
     "@babel/runtime-corejs2": "^7.26.10",

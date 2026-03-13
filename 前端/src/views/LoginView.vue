@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div id="Login">
     <div class="login-form">
       <div class="login-header">
@@ -6,17 +6,12 @@
         <h2 class="login-title">{{ isRegistering ? '用户注册' : '用户登录' }}</h2>
       </div>
 
-      <el-form
-        ref="loginForm"
-        :model="loginForm"
-        :rules="loginRules"
-        @keyup.enter.native="handleSubmit"
-      >
+      <el-form ref="loginForm" :model="loginForm" :rules="loginRules" @keyup.enter.native="handleSubmit">
         <el-form-item prop="username">
           <el-input
             v-model="loginForm.username"
             prefix-icon="el-icon-user"
-            :placeholder="isRegistering ? '请输入用户名' : '请输入用户名'"
+            :placeholder="isRegistering ? '请输入用户名' : '请输入用户名或工号'"
             class="custom-input"
           />
         </el-form-item>
@@ -27,7 +22,7 @@
             prefix-icon="el-icon-lock"
             type="password"
             show-password
-            :placeholder="isRegistering ? '请输入密码' : '请输入密码'"
+            placeholder="请输入密码"
             class="custom-input"
           />
         </el-form-item>
@@ -35,18 +30,10 @@
         <template v-if="isRegistering">
           <div class="inline-form-items">
             <el-form-item label="邮箱" class="inline-form-item" prop="email">
-              <el-input
-                v-model="loginForm.email"
-                prefix-icon="el-icon-message"
-                class="custom-input"
-              />
+              <el-input v-model="loginForm.email" prefix-icon="el-icon-message" class="custom-input" />
             </el-form-item>
             <el-form-item label="手机号" class="inline-form-item" prop="phone">
-              <el-input
-                v-model="loginForm.phone"
-                prefix-icon="el-icon-phone"
-                class="custom-input"
-              />
+              <el-input v-model="loginForm.phone" prefix-icon="el-icon-phone" class="custom-input" />
             </el-form-item>
           </div>
         </template>
@@ -68,6 +55,11 @@
 </template>
 
 <script>
+import axios from 'axios';
+
+import { getApiUrl } from '@/api/config';
+import { getAuthToken, saveAuthSession } from '@/utils/auth';
+
 export default {
   data() {
     return {
@@ -77,43 +69,85 @@ export default {
         username: '',
         password: '',
         email: '',
-        phone: ''
+        phone: '',
       },
       loginRules: {
         username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
-      }
+        password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+      },
     };
   },
+  created() {
+    if (getAuthToken()) {
+      this.$router.replace('/analyses');
+    }
+  },
   methods: {
+    async submitLogin() {
+      const response = await axios.post(getApiUrl('/loginByAccount'), {
+        name: this.loginForm.username,
+        password: this.loginForm.password,
+      });
+      const payload = response?.data || {};
+      if (payload.code !== 1) {
+        throw new Error(payload.message || '登录失败');
+      }
+
+      saveAuthSession(payload.data || {});
+      this.$message.success('登录成功');
+      this.$router.push('/analyses');
+    },
+    async submitRegister() {
+      const response = await axios.post(getApiUrl('/registerByAccount'), {
+        name: this.loginForm.username,
+        password: this.loginForm.password,
+        email: this.loginForm.email,
+        phone: this.loginForm.phone,
+      });
+      const payload = response?.data || {};
+      if (payload.code !== 1) {
+        throw new Error(payload.message || '注册失败');
+      }
+
+      this.$message.success(`注册成功，工号为 ${payload?.data?.accountId}`);
+      this.loginForm.password = '';
+      this.loginForm.email = '';
+      this.loginForm.phone = '';
+      this.isRegistering = false;
+    },
     handleSubmit() {
-      this.$refs.loginForm.validate((valid) => {
+      this.$refs.loginForm.validate(async (valid) => {
         if (!valid) {
           return;
         }
 
         this.loading = true;
-        setTimeout(() => {
-          this.loading = false;
+        try {
           if (this.isRegistering) {
-            this.$message.success('注册成功！');
-            this.$refs.loginForm.resetFields();
-            this.isRegistering = false;
+            await this.submitRegister();
             return;
           }
 
-          this.$message.success('登录成功！');
-          this.$router.push('/analyses');
-        }, 1000);
+          await this.submitLogin();
+        } catch (error) {
+          this.$message.error(error?.message || '请求失败，请稍后重试');
+        } finally {
+          this.loading = false;
+        }
       });
     },
     toggleForm() {
       this.isRegistering = !this.isRegistering;
+      this.loginForm.password = '';
+      if (!this.isRegistering) {
+        this.loginForm.email = '';
+        this.loginForm.phone = '';
+      }
       this.$nextTick(() => {
         this.$refs.loginForm.clearValidate();
       });
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -167,7 +201,7 @@ export default {
 }
 
 .custom-input :deep(.el-input__inner):focus {
-  border-color: #2c6d62;;
+  border-color: #2c6d62;
   box-shadow: 0 0 0 2px rgba(119, 247, 168, 0.15);
 }
 
@@ -196,7 +230,7 @@ export default {
 }
 
 .login-option:hover {
-  color: #2c6d62;;
+  color: #2c6d62;
 }
 
 .login-btn {

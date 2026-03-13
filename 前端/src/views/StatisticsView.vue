@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div id="statistic">
     <div class="top">
       <div class="line">
@@ -33,18 +33,13 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 import BarChart from '@/components/BarChart.vue';
 import LineChart from '@/components/LineChart.vue';
 import PieChart from '@/components/PieChart.vue';
-import axios from 'axios';
 import { getApiUrl } from '@/api/config';
-import {
-  DISEASE_KEY_ORDER,
-  DISEASE_LABEL_MAP,
-  STATS_UPDATED_EVENT,
-  readExportedCases,
-  buildStatisticsIncrement,
-} from '@/utils/statisticsCaseStore';
+import { DISEASE_KEY_ORDER, DISEASE_LABEL_MAP, STATS_UPDATED_EVENT } from '@/utils/statisticsCaseStore';
 
 export default {
   components: {
@@ -62,7 +57,7 @@ export default {
 
       pieChartTitle: '不同疾病占比情况',
       pieChartData: [],
-      pieSeriesNames: [],
+      pieSeriesNames: DISEASE_KEY_ORDER.map((key) => DISEASE_LABEL_MAP[key]),
 
       barChartTitle: '不同年龄段的患病情况',
       barSeriesNames: DISEASE_KEY_ORDER.map((key) => DISEASE_LABEL_MAP[key]),
@@ -70,10 +65,6 @@ export default {
       barXAxisValues: ['0~9岁', '10~19岁', '20~34岁', '35~49岁', '50~64岁', '65岁及以上'],
 
       axisTextColor: '#333333',
-
-      lineBaseData: [],
-      pieBaseMap: {},
-      barBaseRows: [],
     };
   },
   created() {
@@ -83,7 +74,7 @@ export default {
     window.addEventListener(STATS_UPDATED_EVENT, this.handleStatsUpdated);
   },
   activated() {
-    this.mergeWithExportedCases();
+    this.loadStatisticsData();
   },
   beforeDestroy() {
     window.removeEventListener(STATS_UPDATED_EVENT, this.handleStatsUpdated);
@@ -113,7 +104,7 @@ export default {
     },
     normalizeBarRows(raw) {
       const rows = Array.isArray(raw) ? raw : [];
-      const normalized = this.barXAxisValues.map((_, rowIndex) => {
+      return this.barXAxisValues.map((_, rowIndex) => {
         const row = rows[rowIndex] && typeof rows[rowIndex] === 'object' ? rows[rowIndex] : {};
         const next = this.createEmptyDiseaseMap();
         DISEASE_KEY_ORDER.forEach((key) => {
@@ -121,28 +112,28 @@ export default {
         });
         return next;
       });
-      return normalized;
     },
     async loadStatisticsData() {
       await Promise.all([this.loadLineData(), this.loadPieData(), this.loadBarData()]);
-      this.mergeWithExportedCases();
     },
     async loadLineData() {
       try {
         const result = await axios.get(getApiUrl('/getPatientsNum'));
-        this.lineBaseData = this.normalizeLineData(result?.data?.data);
+        this.lineChartData = this.normalizeLineData(result?.data?.data);
       } catch (error) {
         console.error('获取患者月度统计失败:', error);
-        this.lineBaseData = this.normalizeLineData([]);
+        this.lineChartData = this.normalizeLineData([]);
       }
     },
     async loadPieData() {
       try {
         const result = await axios.get(getApiUrl('/getDiseasesDistribution'));
-        this.pieBaseMap = this.normalizePieData(result?.data?.data);
+        const pieMap = this.normalizePieData(result?.data?.data);
+        this.pieChartData = DISEASE_KEY_ORDER.map((key) => pieMap[key]);
       } catch (error) {
         console.error('获取疾病占比失败:', error);
-        this.pieBaseMap = this.normalizePieData({});
+        const pieMap = this.normalizePieData({});
+        this.pieChartData = DISEASE_KEY_ORDER.map((key) => pieMap[key]);
       }
     },
     async loadBarData() {
@@ -154,42 +145,20 @@ export default {
           forthAge: 49,
           fifthAge: 64,
         });
-        this.barBaseRows = this.normalizeBarRows(result?.data?.data);
+        const rows = this.normalizeBarRows(result?.data?.data);
+        this.barSeriesData = DISEASE_KEY_ORDER.map((key) =>
+          this.barXAxisValues.map((_, ageIndex) => Number(rows[ageIndex]?.[key] || 0))
+        );
       } catch (error) {
         console.error('获取年龄段患病统计失败:', error);
-        this.barBaseRows = this.normalizeBarRows([]);
+        const rows = this.normalizeBarRows([]);
+        this.barSeriesData = DISEASE_KEY_ORDER.map((key) =>
+          this.barXAxisValues.map((_, ageIndex) => Number(rows[ageIndex]?.[key] || 0))
+        );
       }
-    },
-    mergeWithExportedCases() {
-      if (!this.lineBaseData.length) {
-        this.lineChartData = this.normalizeLineData([]);
-      }
-      if (!Object.keys(this.pieBaseMap).length) {
-        this.pieBaseMap = this.normalizePieData({});
-      }
-      if (!this.barBaseRows.length) {
-        this.barBaseRows = this.normalizeBarRows([]);
-      }
-
-      const exportedCases = readExportedCases();
-      const increments = buildStatisticsIncrement(exportedCases);
-
-      this.lineChartData = this.lineBaseData.map((value, index) => value + Number(increments.monthly[index] || 0));
-
-      this.pieSeriesNames = DISEASE_KEY_ORDER.map((key) => DISEASE_LABEL_MAP[key]);
-      this.pieChartData = DISEASE_KEY_ORDER.map(
-        (key) => Number(this.pieBaseMap[key] || 0) + Number(increments.disease[key] || 0)
-      );
-
-      this.barSeriesNames = DISEASE_KEY_ORDER.map((key) => DISEASE_LABEL_MAP[key]);
-      this.barSeriesData = DISEASE_KEY_ORDER.map((key) =>
-        this.barXAxisValues.map(
-          (_, ageIndex) => Number(this.barBaseRows[ageIndex]?.[key] || 0) + Number(increments.ageDisease[ageIndex]?.[key] || 0)
-        )
-      );
     },
     handleStatsUpdated() {
-      this.mergeWithExportedCases();
+      this.loadStatisticsData();
     },
   },
 };

@@ -1,56 +1,78 @@
-import Vue from 'vue'
-import VueRouter from 'vue-router'
+import Vue from 'vue';
+import VueRouter from 'vue-router';
 
-Vue.use(VueRouter)
+import { getAuthToken } from '@/utils/auth';
+
+Vue.use(VueRouter);
 
 const routes = [
   {
     path: '/',
-    name:'Root',
-    redirect:'/login'
+    name: 'Root',
+    redirect: '/login',
   },
   {
     path: '/login',
     name: 'Login',
-    component: ()=>import('../views/LoginView.vue')
+    component: () => import('../views/LoginView.vue'),
   },
   {
     path: '/imageObservation',
     name: 'imageObservation',
-    component: ()=>import('../views/ImageObservationView.vue')
+    component: () => import('../views/ImageObservationView.vue'),
   },
   {
     path: '/home',
     name: 'home',
-    component: () =>import('../views/HomeView.vue'),
+    component: () => import('../views/HomeView.vue'),
     children: [
       {
         path: '/dataCharts',
         name: 'dataCharts',
-        component: ()=>import('../views/StatisticsView.vue')
+        component: () => import('../views/StatisticsView.vue'),
       },
       {
         path: '/analyses',
         name: 'AIAnalysis',
-        component: ()=>import('../views/ImageAnalysisView.vue')
+        component: () => import('../views/ImageAnalysisView.vue'),
       },
       {
         path: '/case',
         name: 'CaseManagement',
-        component: ()=>import('../views/CaseManageView.vue')
+        component: () => import('../views/CaseManageView.vue'),
       },
       {
         path: '/userInform',
         name: 'userInform',
-        component: ()=>import('../views/UserInformView.vue')
-      }
-    ]
+        component: () => import('../views/UserInformView.vue'),
+      },
+    ],
   },
-]
+];
 
 const router = new VueRouter({
   mode: 'history',
-  routes
-})
+  routes,
+});
 
-export default router
+router.beforeEach((to, from, next) => {
+  const token = getAuthToken();
+
+  if (to.path === '/login') {
+    if (token) {
+      next('/analyses');
+      return;
+    }
+    next();
+    return;
+  }
+
+  if (!token) {
+    next('/login');
+    return;
+  }
+
+  next();
+});
+
+export default router;

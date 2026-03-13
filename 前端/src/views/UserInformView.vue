@@ -4,7 +4,7 @@
       <el-form :model="form" class="inforForm">
         <div class="leftPart">
           <div class="upPart">
-            <div style="display: flex; justify-content: left; align-items: center;">
+            <div class="section-title">
               <h4>基本信息</h4>
             </div>
             <div class="inforLineContainer">
@@ -19,25 +19,27 @@
               </el-form-item>
 
               <el-form-item label="性别" prop="gender">
-                <img :src="require('@/assets/buttonIcons/xingbie.svg')" alt="gender" />
+                <i class="el-icon-male"></i>
                 <el-input v-model="form.gender" :disabled="!isEditing" />
               </el-form-item>
 
               <el-form-item label="医生工号" prop="doctorID">
                 <i class="el-icon-s-order"></i>
-                <el-input v-model="form.doctorID" :disabled="!isEditing" />
+                <el-input v-model="form.doctorID" disabled />
               </el-form-item>
             </div>
 
             <div class="inforLineContainer">
               <el-form-item label="科室" prop="department">
-                <i class="el-icon-view"></i>
+                <i class="el-icon-office-building"></i>
                 <el-input v-model="form.department" :disabled="!isEditing" />
               </el-form-item>
-              <el-form-item label="电子邮箱" prop="email">
+
+              <el-form-item label="邮箱" prop="email">
                 <i class="el-icon-message"></i>
                 <el-input v-model="form.email" :disabled="!isEditing" />
               </el-form-item>
+
               <el-form-item label="手机号" prop="phone">
                 <i class="el-icon-phone-outline"></i>
                 <el-input v-model="form.phone" :disabled="!isEditing" />
@@ -46,19 +48,28 @@
           </div>
 
           <div class="downPart">
-            <div style="display: flex; justify-content: left; align-items: center;">
+            <div class="section-title">
               <h4>安全设置</h4>
             </div>
             <div class="passwordContainer">
               <div class="modify">
                 <el-form-item label="原密码" prop="oldPasswordInput">
                   <i class="el-icon-lock"></i>
-                  <el-input v-model="form.oldPasswordInput" :disabled="!isModifyPassword" type="password"
-                    :placeholder="isModifyPassword ? '' : '********'" />
+                  <el-input
+                    v-model="form.oldPasswordInput"
+                    :disabled="!isModifyPassword"
+                    type="password"
+                    :placeholder="isModifyPassword ? '' : '********'"
+                  />
                 </el-form-item>
-                <el-button @click="setModifyStatus" v-if="!isModifyPassword" class="passwordButton">设置新密码</el-button>
-                <el-button @click="submitPassWord" v-if="isModifyPassword" class="passwordButton">提交</el-button>
+                <el-button @click="setModifyStatus" v-if="!isModifyPassword" class="passwordButton">
+                  设置新密码
+                </el-button>
+                <el-button @click="submitPassWord" v-if="isModifyPassword" class="passwordButton">
+                  提交
+                </el-button>
               </div>
+
               <el-form-item label="新密码" prop="newPassword" v-if="isModifyPassword">
                 <el-input v-model="form.newPassword" type="password" />
               </el-form-item>
@@ -70,7 +81,13 @@
           <div class="imageSizeControler">
             <el-form-item label="个人照片" class="imageContainer">
               <i class="el-icon-camera-solid"></i>
-              <ImageUploader :isUpload="true" @file-uploaded="imageUpload" :disabled="!isEditing" class="image" />
+              <ImageUploader
+                :isUpload="true"
+                :imageFile="form.photo"
+                :disabled="!isEditing"
+                @file-uploaded="imageUpload"
+                class="image"
+              />
             </el-form-item>
           </div>
           <div class="functionalButtons">
@@ -89,7 +106,11 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 import ImageUploader from '@/components/ImageUploader.vue';
+import { getApiUrl } from '@/api/config';
+import { clearAuthSession, getAuthToken } from '@/utils/auth';
 
 export default {
   components: {
@@ -99,7 +120,6 @@ export default {
     return {
       isEditing: false,
       isModifyPassword: false,
-      isOldPasswordInputValid: false,
       form: {
         name: '',
         age: '',
@@ -108,45 +128,122 @@ export default {
         department: '',
         email: '',
         phone: '',
-        image: '',
-        passWord: '1433223',
+        photo: '',
         oldPasswordInput: '',
         newPassword: '',
       },
     };
   },
+  mounted() {
+    this.loadProfile();
+  },
   methods: {
-    setEditingStatus() {
-      this.isEditing = !this.isEditing;
+    getTokenOrRedirect() {
+      const token = getAuthToken();
+      if (!token) {
+        this.$router.push('/login');
+        return '';
+      }
+      return token;
+    },
+    async loadProfile() {
+      const token = this.getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const response = await axios.post(getApiUrl('/getPersonalInform'), { token });
+        const payload = response?.data || {};
+        if (payload.code !== 1) {
+          throw new Error(payload.message || '获取个人信息失败');
+        }
+
+        const data = payload.data || {};
+        this.form.name = data.name || '';
+        this.form.age = data.age ?? '';
+        this.form.gender = data.gender || '';
+        this.form.doctorID = data.accountId || '';
+        this.form.department = data.department || '';
+        this.form.email = data.email || '';
+        this.form.phone = data.phone || '';
+        this.form.photo = data.photo || '';
+      } catch (error) {
+        this.$message.error(error?.message || '获取个人信息失败');
+      }
+    },
+    async setEditingStatus() {
+      if (!this.isEditing) {
+        this.isEditing = true;
+        return;
+      }
+
+      const token = this.getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const response = await axios.post(getApiUrl('/updatePersonalInform'), {
+          token,
+          name: this.form.name,
+          gender: this.form.gender,
+          age: this.form.age === '' ? null : Number(this.form.age),
+          department: this.form.department,
+          email: this.form.email,
+          phone: this.form.phone,
+          photo: this.form.photo,
+        });
+        const payload = response?.data || {};
+        if (payload.code !== 1) {
+          throw new Error(payload.message || '更新失败');
+        }
+
+        this.$message.success('资料更新成功');
+        this.isEditing = false;
+        await this.loadProfile();
+      } catch (error) {
+        this.$message.error(error?.message || '更新失败');
+      }
     },
     setModifyStatus() {
       this.isModifyPassword = !this.isModifyPassword;
-    },
-    submitPassWord() {
-      if (this.form.oldPasswordInput === this.form.passWord) {
-        if (this.form.newPassword === '') {
-          this.$message.error('新密码不能为空！');
-        } else {
-          this.form.passWord = this.form.newPassword;
-          this.form.newPassword = '';
-          this.form.oldPasswordInput = '';
-          this.$message.success('修改成功！');
-          this.isModifyPassword = false;
-        }
-      } else {
-        if (this.form.oldPasswordInput === '') {
-          this.$message.error('请先输入原密码！');
-        } else {
-          this.$message.error('原密码错误，请重试！');
-        }
-
-        this.form.newPassword = '';
+      if (!this.isModifyPassword) {
         this.form.oldPasswordInput = '';
+        this.form.newPassword = '';
       }
     },
-    imageUpload({ file, base64 }) {
-      this.form.image = base64;
-      this.file = file;
+    async submitPassWord() {
+      if (!this.form.oldPasswordInput) {
+        this.$message.error('请先输入原密码');
+        return;
+      }
+      if (!this.form.newPassword) {
+        this.$message.error('新密码不能为空');
+        return;
+      }
+
+      const token = this.getTokenOrRedirect();
+      if (!token) return;
+
+      try {
+        const response = await axios.post(getApiUrl('/changePassword'), {
+          token,
+          oldPassword: this.form.oldPasswordInput,
+          newPassword: this.form.newPassword,
+        });
+        const payload = response?.data || {};
+        if (payload.code !== 1) {
+          throw new Error(payload.message || '修改密码失败');
+        }
+
+        this.form.oldPasswordInput = '';
+        this.form.newPassword = '';
+        this.isModifyPassword = false;
+        this.$message.success('密码修改成功');
+      } catch (error) {
+        this.$message.error(error?.message || '修改密码失败');
+      }
+    },
+    imageUpload({ base64 }) {
+      if (!this.isEditing) return;
+      this.form.photo = base64;
     },
     async logOut() {
       try {
@@ -155,23 +252,11 @@ export default {
           cancelButtonText: '取消',
           type: 'warning',
         });
-        this.form = {
-          name: '',
-          age: '',
-          gender: '',
-          doctorID: '',
-          department: '',
-          email: '',
-          phone: '',
-          image: '',
-          passWord: '1433223',
-          oldPasswordInput: '',
-          newPassword: '',
-        };
-        this.$message.success('退出登录成功！');
+        clearAuthSession();
+        this.$message.success('已退出登录');
         this.$router.push('/login');
       } catch (error) {
-        // 用户取消
+        // User cancelled.
       }
     },
   },
@@ -226,6 +311,12 @@ export default {
   padding: 0 20px 20px 20px;
 }
 
+.section-title {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+
 .rightPart {
   flex: 3;
   display: flex;
@@ -246,9 +337,7 @@ export default {
 
 .imageContainer {
   width: 60%;
-  /*上 0，下 1rem，左右 auto，浏览器会把剩余空间平均分到左右 */
   margin: 0 auto 1rem auto;
-  
   background-color: transparent;
 }
 
@@ -268,17 +357,17 @@ export default {
   gap: 2rem;
 }
 
+.modify {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .passwordButton {
   background-color: transparent;
   border-radius: 4px;
   border-color: #286d25;
   color: #286d25;
-}
-
-.passwordButton:disabled {
-  background-color: transparent;
-  color: #b3b0b6;
-  cursor: not-allowed;
 }
 
 .button {

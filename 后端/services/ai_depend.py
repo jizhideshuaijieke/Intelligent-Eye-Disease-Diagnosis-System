@@ -1,55 +1,82 @@
 import http.client
 import json
-
-from core.config import settings
+import re
 
 
 class ai:
-    @classmethod
-    def _headers(cls):
-        if not settings.AI_CHAT_API_KEY:
-            raise RuntimeError("AI_CHAT_API_KEY is not configured")
-        return {
-            "Authorization": f"Bearer {settings.AI_CHAT_API_KEY}",
-            "Content-Type": "application/json",
-        }
+    api_key = "sk-xNoKJZg0BcyKLcWlqYOzE0VM2nhvrqUXnngz63P4Oaf3dapj"
+    # gpt api
+    api_url = "https://api.chatanywhere.com.cn"
+    headers = {
+        'Authorization': f"Bearer {api_key}",
+        'Content-Type': 'application/json'
+    }
+    conn = http.client.HTTPSConnection("api.chatanywhere.tech")
 
     @classmethod
-    def _request_chat(cls, prompt: str) -> str:
-        payload = json.dumps(
-            {
-                "model": settings.AI_CHAT_MODEL,
-                "messages": [
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt},
-                ],
-            }
-        )
-        conn = http.client.HTTPSConnection(settings.AI_CHAT_HOST)
-        conn.request("POST", settings.AI_CHAT_PATH, payload, cls._headers())
-        raw = conn.getresponse().read().decode("utf-8")
-        data = json.loads(raw)
-        return data["choices"][0]["message"]["content"]
+    async def call_ai_api(self, age: int, gender: str, outcome: str) -> str:
+        """
+        调用大模型API，获取诊断建议
+        """
 
-    @classmethod
-    async def call_ai_api(cls, age: int, gender: str, outcome: str) -> str:
         prompt = f"""
-        我是一名眼科医生，根据以下患者信息，详细提供诊断建议和治疗流程：
-        年龄：{age}，性别：{gender}，
-        确诊疾病：{outcome}，
+        我是一名眼科医生，根据以下患者信息，详细提供提供诊断建议和治疗流程：
+        年龄：{age}，性别：{gender},
+        确诊疾病：{outcome},
         请提供：
-        1. 治疗建议
-        2. 检查计划
-        3. 用药建议
+        ###1. 治疗建议
+        ###2. 检查计划
+        ###3. 用药建议
         """
-        return cls._request_chat(prompt)
+
+        payload = json.dumps({
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        })
+        self.conn.request("POST", "/v1/chat/completions", payload, self.headers)
+        data = json.loads(self.conn.getresponse().read().decode("utf-8"))
+        content = data["choices"][0]["message"]["content"]
+        # result = re.sub(r'(\d+\.)', r'###\1', content)
+        return content
 
     @classmethod
-    async def get_ai_answer(cls, question: str) -> str:
-        prompt = f"""
-        请围绕下面问题给出清晰、具体的回答，并按编号输出：
-        1. ...
-        2. ...
-        问题：{question}
+    async def get_ai_answer(self, question: str) -> str:
         """
-        return cls._request_chat(prompt)
+        获取AI模型的诊断建议
+        """
+
+        prompt = f"""
+        请关于我下面的提问进行回答，要求回答具体清晰准确,并按照下面的格式进行回复,请回复详细一点
+        1. answer...
+        2. answer...
+        ...
+        下面我将开始提问
+        {question},请问怎么解决？
+        """
+        payload = json.dumps({
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        })
+        self.conn.request("POST", "/v1/chat/completions", payload, self.headers)
+        data = json.loads(self.conn.getresponse().read().decode("utf-8"))
+        content = data["choices"][0]["message"]["content"]
+        # result = re.sub(r'\d\.', r'###\d\.', content)
+        return content
